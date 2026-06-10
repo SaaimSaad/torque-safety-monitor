@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torque Safety Monitor — Muhammed Saaim Saad</title>
+<meta name="description" content="Model-based design of an ISO 26262 E-Gas three-level torque safety monitor — independent permissible-torque (L2), question/answer watchdog (L3), FTTI-bounded fault reaction, latched safe state. Simulink/Stateflow, Embedded Coder, MIL/SIL with MCDC coverage. Interactive in-browser monitor.">
+<meta name="theme-color" content="#080808">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23080808'/%3E%3Ctext x='16' y='23' font-family='Orbitron,Arial,sans-serif' font-size='17' font-weight='700' fill='%2300D2BE' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080808;--bg-surface:#0f0f0f;--bg-raised:#171717;
+  --petronas:#00D2BE;--petronas-dim:#009E8E;
+  --silver:#C8CCCE;--silver-dim:#7A8490;--white:#F4F4F4;
+  --amber:#C8A800;--red:#FF4444;--orange:#FF6A2A;
+  --font-d:'Orbitron',monospace;--font-b:'Inter',sans-serif;--font-m:'JetBrains Mono',monospace;
+  --pad:84px;--r:6px;--ease:0.28s cubic-bezier(0.4,0,0.2,1);
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:var(--font-b);background:var(--bg);color:var(--silver);line-height:1.6;overflow-x:hidden}
+.carbon{background-color:var(--bg);background-image:
+  repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 0,transparent 50%),
+  repeating-linear-gradient(-45deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 0,transparent 50%);
+  background-size:6px 6px;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.eyebrow{font-family:var(--font-d);font-size:.6rem;font-weight:600;letter-spacing:.35em;text-transform:uppercase;color:var(--petronas);margin-bottom:10px}
+.s-title{font-family:var(--font-d);font-size:clamp(1.45rem,3vw,2rem);font-weight:700;color:var(--white);letter-spacing:.04em;margin-bottom:6px}
+.s-sub{font-size:.95rem;color:var(--silver-dim);max-width:640px;line-height:1.7}
+.bar{width:44px;height:2.5px;background:var(--petronas);margin:14px 0 34px}
+.rule{height:1px;background:linear-gradient(90deg,transparent,rgba(200,204,206,.18) 25%,rgba(200,204,206,.32) 50%,rgba(200,204,206,.18) 75%,transparent)}
+.fi{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s ease}
+.fi.v{opacity:1;transform:none}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:62px;display:flex;align-items:center;transition:background var(--ease),border-color var(--ease)}
+nav.sc{background:rgba(8,8,8,.94);backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,210,190,.14)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;width:100%}
+.n-logo{font-family:var(--font-d);font-size:.85rem;font-weight:700;letter-spacing:.18em;color:var(--petronas);text-decoration:none}
+.n-back{font-family:var(--font-d);font-size:.58rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--silver-dim);text-decoration:none;transition:color var(--ease)}
+.n-back:hover{color:var(--white)}
+
+#hero{padding:140px 0 60px;position:relative;overflow:hidden}
+.hero-grid{position:absolute;top:0;right:0;bottom:0;width:55%;background-image:linear-gradient(rgba(0,210,190,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,210,190,.04) 1px,transparent 1px);background-size:56px 56px;-webkit-mask-image:linear-gradient(to left,rgba(0,0,0,.5),transparent);mask-image:linear-gradient(to left,rgba(0,0,0,.5),transparent);pointer-events:none}
+.h-eyebrow{font-family:var(--font-d);font-size:.6rem;letter-spacing:.4em;color:var(--petronas);text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:14px}
+.h-eyebrow::before{content:'';display:block;width:30px;height:1px;background:var(--petronas)}
+.h-title{font-family:var(--font-d);font-size:clamp(1.9rem,4.5vw,3rem);font-weight:800;color:var(--white);line-height:1.08;letter-spacing:.03em;margin-bottom:18px;position:relative;z-index:2}
+.h-lead{font-size:clamp(.95rem,1.6vw,1.08rem);color:var(--silver-dim);max-width:660px;line-height:1.7;margin-bottom:26px;position:relative;z-index:2}
+.chips{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:2}
+.chip{font-family:var(--font-d);font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--petronas);background:rgba(0,210,190,.08);border:1px solid rgba(0,210,190,.2);padding:5px 11px;border-radius:2px}
+.chip.wip{color:var(--amber);background:rgba(200,168,0,.1);border-color:rgba(200,168,0,.25)}
+
+section{padding:var(--pad) 0}
+
+.sim-wrap{background:var(--bg-raised);border:1px solid rgba(255,255,255,.07);border-top:2px solid var(--petronas);border-radius:var(--r);padding:22px}
+.sim-note,.cap{font-size:.78rem;color:var(--silver-dim);line-height:1.65}
+.cap{margin-top:12px}.cap b{color:var(--silver)}
+.sim-note{margin-top:14px;font-style:italic}.sim-note b{color:var(--silver);font-style:normal}
+
+.cluster-body{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
+canvas{width:100%;display:block;background:#0a0a0a;border:1px solid rgba(255,255,255,.06);border-radius:6px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:6px;font-size:.74rem;color:var(--silver-dim)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:15px;height:3px;border-radius:2px;display:inline-block}
+.sw.act{background:var(--petronas)}.sw.perm{height:0;border-top:2px dashed var(--silver-dim)}
+.sw.cmd{background:var(--orange)}
+
+.cpanel{display:flex;flex-direction:column}
+.ctrl{margin-bottom:12px}
+.ctrl label{display:flex;justify-content:space-between;font-family:var(--font-d);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:6px}
+.ctrl label span{color:var(--petronas)}
+.ctrl input[type=range]{width:100%;accent-color:var(--petronas);cursor:pointer}
+
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{font-family:var(--font-d);font-size:.52rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 8px;border-radius:2px;cursor:pointer;border:1px solid rgba(200,204,206,.3);background:transparent;color:var(--silver);transition:all var(--ease);flex:1 1 46%}
+.btn:hover{border-color:var(--silver);color:var(--white)}
+.btn.amb{border-color:rgba(200,168,0,.4);color:var(--amber)}
+.btn.amb:hover{background:rgba(200,168,0,.12)}
+.btn.fault{border-color:rgba(255,68,68,.4);color:var(--red)}
+.btn.fault:hover{background:rgba(255,68,68,.12)}
+
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.ro{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:9px 11px}
+.ro-l{font-family:var(--font-d);font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:4px}
+.ro-v{font-family:var(--font-d);font-size:1rem;font-weight:700;color:var(--petronas)}
+.state-pill{display:inline-block;font-family:var(--font-d);font-size:.54rem;letter-spacing:.06em;padding:3px 7px;border-radius:2px}
+.st-OK{color:var(--petronas);background:rgba(0,210,190,.12);border:1px solid rgba(0,210,190,.3)}
+.st-L2_LIMIT{color:var(--amber);background:rgba(200,168,0,.12);border:1px solid rgba(200,168,0,.32)}
+.st-L3_SAFE{color:var(--red);background:rgba(255,68,68,.12);border:1px solid rgba(255,68,68,.35)}
+
+/* level ladder */
+.ladder{display:flex;flex-direction:column;gap:7px;margin-top:14px}
+.lvl{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-left:3px solid rgba(255,255,255,.12);border-radius:4px;transition:all var(--ease)}
+.lvl .ln{font-family:var(--font-d);font-size:.5rem;letter-spacing:.1em;color:var(--silver-dim)}
+.lvl .ld{font-size:.74rem;color:var(--silver);margin-left:auto}
+.lvl.l1.on{border-left-color:var(--petronas)}
+.lvl.l2.on{border-left-color:var(--amber);background:rgba(200,168,0,.07)}
+.lvl.l3.on{border-left-color:var(--red);background:rgba(255,68,68,.07)}
+.lvl.on .ln{color:var(--white)}
+
+/* safe-state lamp */
+.lampbox{display:flex;align-items:center;gap:12px;margin-top:14px;padding:11px 13px;background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:5px}
+.warn-lamp{width:34px;height:34px;flex-shrink:0;opacity:.26;transition:opacity var(--ease),filter var(--ease)}
+@keyframes warnPulse{0%,100%{filter:drop-shadow(0 0 4px rgba(255,68,68,.5))}50%{filter:drop-shadow(0 0 14px rgba(255,68,68,.95))}}
+.warn-lamp.on{opacity:1;animation:warnPulse 1.8s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.warn-lamp.on{animation:none;filter:drop-shadow(0 0 6px rgba(255,68,68,.85))}}
+.lamp-txt{font-family:var(--font-d);font-size:.54rem;letter-spacing:.12em;text-transform:uppercase;color:var(--silver-dim)}
+.lamp-txt b{display:block;color:var(--silver);font-size:.62rem;margin-top:3px}
+
+.card{background:var(--bg-raised);border:1px solid rgba(255,255,255,.06);border-radius:var(--r);padding:24px}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+th{font-family:var(--font-d);font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim)}
+td .rid{font-family:var(--font-m);color:var(--petronas);font-size:.8rem}
+.req-type{font-size:.66rem;color:var(--silver-dim)}
+pre{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:20px 22px;overflow-x:auto;font-family:var(--font-m);font-size:.8rem;line-height:1.62;color:var(--silver)}
+.cm{color:var(--silver-dim)}.kw{color:var(--petronas)}.fn{color:#9ecbff}.nu{color:var(--amber)}
+.art{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.art:last-child{border-bottom:none}
+.art-status{font-family:var(--font-d);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.st-done{color:var(--petronas);background:rgba(0,210,190,.1);border:1px solid rgba(0,210,190,.25)}
+.st-pending{color:var(--silver-dim);background:rgba(200,204,206,.05);border:1px solid rgba(200,204,206,.14)}
+.art h4{font-family:var(--font-d);font-size:.72rem;letter-spacing:.06em;color:var(--white);margin-bottom:4px}
+.art p{font-size:.85rem;color:var(--silver-dim);line-height:1.6}
+.art a{color:var(--petronas);text-decoration:none}.art a:hover{text-decoration:underline}
+.btn-p{display:inline-block;font-family:var(--font-d);font-size:.6rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:var(--petronas);color:var(--bg);padding:13px 28px;border-radius:2px;text-decoration:none;transition:background var(--ease),transform var(--ease)}
+.btn-p:hover{background:var(--petronas-dim);transform:translateY(-2px)}
+.btn-s{display:inline-block;font-family:var(--font-d);font-size:.6rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:transparent;color:var(--silver);padding:13px 28px;border-radius:2px;text-decoration:none;border:1px solid rgba(200,204,206,.35);transition:all var(--ease)}
+.btn-s:hover{border-color:var(--silver);color:var(--white)}
+footer{padding:28px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ft-in{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.ft-logo{font-family:var(--font-d);font-size:.68rem;letter-spacing:.22em;color:var(--petronas)}
+.ft-copy{font-size:.74rem;color:var(--silver-dim)}
+
+.diagram{width:100%;height:auto;display:block}
+.formula-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px}
+.formula{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-left:2px solid var(--petronas);border-radius:4px;padding:13px 15px;min-width:0}
+.formula.wide{grid-column:1 / -1}
+.formula code{display:block;font-family:var(--font-m);font-size:.78rem;color:var(--white);margin-bottom:7px;white-space:normal;overflow-wrap:break-word}
+.formula p{font-size:.8rem;color:var(--silver-dim);line-height:1.55}
+.formula b{color:var(--silver);font-weight:600}
+.legend-line{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;font-size:.74rem;color:var(--silver-dim)}
+.legend-line span{display:inline-flex;align-items:center;gap:7px}
+.legend-line i{width:13px;height:13px;border-radius:3px;display:inline-block}
+.lg-gen{background:rgba(0,210,190,.18);border:1px solid var(--petronas)}
+.lg-plant{background:rgba(120,128,134,.14);border:1px solid var(--silver-dim)}
+
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px}
+.stat{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-top:2px solid var(--petronas);border-radius:5px;padding:14px 15px}
+.s-val{font-family:var(--font-d);font-size:1.5rem;font-weight:700;color:var(--white);line-height:1}
+.s-lab{font-family:var(--font-d);font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;color:var(--silver-dim);margin-top:9px}
+.s-req{font-size:.72rem;color:var(--petronas);margin-top:5px}
+.stat-cap{font-size:.72rem;color:var(--silver-dim);margin:0 0 24px}
+
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid rgba(255,255,255,.08)}
+.tab{font-family:var(--font-d);font-size:.55rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:10px 16px;border:none;background:transparent;color:var(--silver-dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--ease),border-color var(--ease)}
+.tab:hover{color:var(--silver)}
+.tab[aria-selected=true]{color:var(--petronas);border-bottom-color:var(--petronas)}
+.tabpanel[hidden]{display:none}
+.tabpanel pre{border-top-left-radius:0;border-top-right-radius:0}
+
+.fault-note{font-size:.72rem;color:var(--silver-dim);line-height:1.7;margin-top:10px;padding:9px 11px;border:1px solid rgba(255,68,68,.2);border-radius:4px;background:rgba(255,68,68,.05)}.fault-note b{color:var(--silver);font-weight:600}
+.fault-status{display:flex;align-items:center;gap:9px;margin-bottom:6px;font-family:var(--font-d);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--silver-dim)}
+.fault-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);transition:background .25s ease,box-shadow .25s ease,border-color .25s ease;flex-shrink:0}
+.fault-dot.on-amb{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px 1px rgba(200,168,0,.45)}
+.fault-dot.on-red{background:var(--red);border-color:var(--red);box-shadow:0 0 8px 1px rgba(255,68,68,.45)}
+@keyframes excessPulse{0%,100%{box-shadow:0 0 0 0 rgba(200,168,0,0)}50%{box-shadow:0 0 0 6px rgba(200,168,0,.2)}}
+@keyframes wdPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,0)}50%{box-shadow:0 0 0 6px rgba(255,68,68,.2)}}
+.btn.amb.injecting{background:rgba(200,168,0,.12);border-color:var(--amber);color:var(--amber);animation:excessPulse 1.5s ease infinite}
+.btn.fault.injecting{background:rgba(255,68,68,.12);border-color:var(--red);color:var(--red);animation:wdPulse 1.5s ease infinite}
+/* ── L2 arc counter ── */
+.arc-cnt{display:flex;justify-content:center;margin-top:4px;margin-bottom:4px}
+.arc-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:8;stroke-linecap:round}
+.arc-fill{fill:none;stroke:var(--amber);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .1s linear,stroke .3s ease}
+.arc-num{font-family:var(--font-d);font-size:14px;font-weight:700;fill:var(--amber)}
+.arc-denom{font-family:var(--font-d);font-size:8px;fill:var(--silver-dim)}
+/* ── freeze frame ── */
+.ff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:6px}
+.ff{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:9px 10px}
+.ff-l{font-family:var(--font-d);font-size:.46rem;letter-spacing:.12em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:3px}
+.ff-v{font-family:var(--font-m);font-size:.8rem;color:var(--white)}
+.ff-empty{font-size:.78rem;color:var(--silver-dim);font-style:italic;padding:6px 2px}
+/* ── torque margin ── */
+.margin-tag{font-family:var(--font-d);font-size:.4rem;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;transition:all .3s ease}
+.margin-tag.ok{color:var(--petronas);background:rgba(0,210,190,.08);border:1px solid rgba(0,210,190,.2)}
+.margin-tag.bad{color:var(--red);background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.3)}
+@media(max-width:860px){
+  :root{--pad:60px}
+  .cluster-body{grid-template-columns:1fr}
+  .hero-grid{display:none}
+  .formula-grid{grid-template-columns:1fr}
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+}
+@media(prefers-reduced-motion:reduce){.fi{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="wrap nav-in">
+    <a href="newcv.html" class="n-logo">MSS</a>
+    <a href="newcv.html#projects" class="n-back">← All Projects</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero" class="carbon">
+  <div class="hero-grid"></div>
+  <div class="wrap">
+    <div class="h-eyebrow fi">Project · Powertrain MBD · Functional Safety</div>
+    <h1 class="h-title fi">Torque Safety<br>Monitor</h1>
+    <p class="h-lead fi">An ISO 26262 functional-safety monitor for an electronic throttle / torque path — the classic <b style="color:var(--silver)">ASIL-D unintended-acceleration</b> safety case — built the full MBD way: requirements → Simulink/Stateflow → generated C → MIL/SIL with structural coverage. It implements the <b style="color:var(--silver)">E-Gas three-level</b> concept: Level 2 recomputes a <b style="color:var(--silver)">permissible torque</b> independently and limits torque if the actual exceeds it; Level 3 runs a <b style="color:var(--silver)">question/answer watchdog</b> that forces a safe state if the computer misbehaves — both reacting inside the <b style="color:var(--silver)">FTTI</b>. The console below is a live run of the same logic — inject an over-torque or fail the watchdog and watch it react.</p>
+    <div class="chips fi">
+      <span class="chip">ISO 26262</span><span class="chip">E-Gas 3-Level</span>
+      <span class="chip">Stateflow</span><span class="chip">Embedded Coder</span>
+      <span class="chip">MISRA-C</span><span class="chip">MIL / SIL</span>
+      <span class="chip">AUTOSAR SWC</span><span class="chip wip">In Progress</span>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- INTERACTIVE MONITOR -->
+<section id="sim">
+  <div class="wrap">
+    <div class="eyebrow fi">Live · Try It</div>
+    <h2 class="s-title fi">Safety Console</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:22px"><b style="color:var(--silver)">New here?</b> Move the <b style="color:var(--silver)">pedal</b> — the teal torque tracks the driver demand and stays under the dashed permissible ceiling. Then <b style="color:var(--amber)">inject an over-torque</b> (a stuck/runaway fault): Level 2 limits the torque within the FTTI. Or <b style="color:var(--red)">fail the watchdog</b>: Level 3 cuts to a safe state. Reactions latch — hit Reset (a key-cycle) to recover.</p>
+
+    <div class="sim-wrap fi">
+      <div class="cluster-body">
+        <div class="graph-col">
+          <canvas id="plot" width="720" height="250"></canvas>
+          <div class="legend">
+            <span><i class="sw act"></i> Actual torque (L1)</span>
+            <span><i class="sw perm"></i> Permissible (L2 ceiling)</span>
+            <span><i class="sw cmd"></i> Commanded torque (monitor out)</span>
+          </div>
+          <p class="cap"><b>What you're watching:</b> teal is the torque the function path is producing; the dashed line is the independent L2 ceiling. While healthy, the orange command equals the actual. Cross the ceiling and the command is <b style="color:var(--amber)">limited</b>; a watchdog timeout drops it to <b style="color:var(--red)">zero</b> — the safe state.</p>
+        </div>
+
+        <div class="cpanel">
+          <div class="ctrl">
+            <label>Pedal <span id="v-ped">35%</span></label>
+            <input type="range" id="s-ped" min="0" max="100" value="35" step="1">
+          </div>
+
+          <div style="margin-bottom:10px">
+            <div class="fault-status"><span class="fault-dot" id="dot-excess"></span><span id="lbl-excess">No over-torque</span></div>
+            <div class="btn-row">
+              <button class="btn amb" id="b-excess">Inject Over-Torque</button>
+              <button class="btn" id="b-rem-excess">Remove</button>
+            </div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div class="fault-status"><span class="fault-dot" id="dot-wd"></span><span id="lbl-wd">Watchdog healthy</span></div>
+            <div class="btn-row">
+              <button class="btn fault" id="b-wd">Fail Watchdog</button>
+              <button class="btn" id="b-rem-wd">Restore</button>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-bottom:10px">
+            <button class="btn" id="b-spike" style="flex:1 1 100%">Torque Spike (glitch — no latch)</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="b-reset" style="flex:1 1 100%">Reset (Key Cycle)</button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+            <div>
+              <div class="ro-l" style="font-family:var(--font-d);font-size:.44rem;letter-spacing:.13em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:0;text-align:center">L2 Debounce</div>
+              <div class="arc-cnt" style="margin-top:4px">
+                <svg viewBox="-60 -58 120 76" width="110" height="70">
+                  <path d="M-50,0 A50,50 0 0,1 50,0" class="arc-bg"/>
+                  <path id="l2arc-fill" d="M-50,0 A50,50 0 0,1 50,0" class="arc-fill" stroke-dasharray="157" stroke-dashoffset="157"/>
+                  <text id="l2arc-num" class="arc-num" x="0" y="-4" text-anchor="middle">0</text>
+                  <text class="arc-denom" x="0" y="10" text-anchor="middle">/ 3</text>
+                </svg>
+              </div>
+            </div>
+            <div>
+              <div class="ro-l" style="font-family:var(--font-d);font-size:.44rem;letter-spacing:.13em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:0;text-align:center">L3 Watchdog</div>
+              <div class="arc-cnt" style="margin-top:4px">
+                <svg viewBox="-60 -58 120 76" width="110" height="70">
+                  <path d="M-50,0 A50,50 0 0,1 50,0" class="arc-bg"/>
+                  <path id="l3arc-fill" d="M-50,0 A50,50 0 0,1 50,0" class="arc-fill" stroke-dasharray="157" stroke-dashoffset="157" stroke="var(--red)"/>
+                  <text id="l3arc-num" class="arc-num" x="0" y="-4" text-anchor="middle" fill="var(--red)">0</text>
+                  <text class="arc-denom" x="0" y="10" text-anchor="middle">/ 5</text>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="ladder">
+            <div class="lvl l1 on" id="lvl1"><span class="ln">L1 · Function</span><span class="ld">torque path</span></div>
+            <div class="lvl l2" id="lvl2"><span class="ln">L2 · Monitor</span><span class="ld">permissible torque</span></div>
+            <div class="lvl l3" id="lvl3"><span class="ln">L3 · Watchdog</span><span class="ld">Q/A computer check</span></div>
+          </div>
+
+          <div class="lampbox">
+            <svg class="warn-lamp" id="warn" viewBox="0 0 48 44" aria-label="Safe-state warning lamp">
+              <path d="M24 3 L46 41 L2 41 Z" fill="#FF4444" stroke="#240505" stroke-width="1.6" stroke-linejoin="round"/>
+              <rect x="22" y="16" width="4" height="13" rx="2" fill="#240505"/>
+              <circle cx="24" cy="35" r="2.4" fill="#240505"/>
+            </svg>
+            <div class="lamp-txt">Safe State<b id="warn-txt">INACTIVE</b></div>
+          </div>
+          <p id="latch-note" class="fault-note" style="display:none"><b>Latch active.</b> Removing the fault injection does not clear a safety reaction — that requires a key cycle. Press <b>Reset (Key Cycle)</b> to return to OK.</p>
+
+          <div class="readouts">
+            <div class="ro"><div class="ro-l">State</div><div class="ro-v"><span id="ro-state" class="state-pill st-OK">OK</span></div></div>
+            <div class="ro"><div class="ro-l">Reaction</div><div class="ro-v" id="ro-rt">—</div></div>
+            <div class="ro"><div class="ro-l">Permissible</div><div class="ro-v" id="ro-perm">—</div></div>
+            <div class="ro"><div class="ro-l">Cmd torque</div><div class="ro-v" id="ro-cmd">—</div></div>
+            <div class="ro" style="grid-column:1/-1">
+              <div class="ro-l" style="display:flex;justify-content:space-between;align-items:center">
+                Torque margin
+                <span class="margin-tag ok" id="margin-tag">HEADROOM</span>
+              </div>
+              <div class="ro-v" id="ro-margin">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="ro-l" style="font-family:var(--font-d);font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:8px">Freeze Frame <span id="ff-tag" style="color:var(--silver-dim)">— not captured</span></div>
+        <div id="ff-body" class="ff-empty">No reaction yet. The operating point at the moment a safety reaction triggers will be captured here.</div>
+        <div id="ff-grid" class="ff-grid" style="display:none">
+          <div class="ff"><div class="ff-l">Level reacted</div><div class="ff-v" id="ff-level">—</div></div>
+          <div class="ff"><div class="ff-l">Pedal</div><div class="ff-v" id="ff-pedal">—</div></div>
+          <div class="ff"><div class="ff-l">Reaction time</div><div class="ff-v" id="ff-rt">—</div></div>
+          <div class="ff"><div class="ff-l">Actual torque</div><div class="ff-v" id="ff-tq">—</div></div>
+          <div class="ff"><div class="ff-l">Permissible</div><div class="ff-v" id="ff-perm2">—</div></div>
+          <div class="ff"><div class="ff-l">Excess</div><div class="ff-v" id="ff-excess">—</div></div>
+        </div>
+      </div>
+
+      <p class="sim-note">A browser run of the monitor logic (independent permissible-torque L2 with debounce, question/answer watchdog L3, and the latched OK→L2_LIMIT→L3_SAFE supervisor) — the same logic and parameters as the Simulink/Stateflow model in the repo, and as <code>verify_safety_monitor.js</code>. <b>Not</b> the Simulink artifact itself.</p>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- THEORY -->
+<section id="theory">
+  <div class="wrap">
+    <div class="eyebrow fi">Theory</div>
+    <h2 class="s-title fi">How It Works</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:26px">Three independent layers guarding one safety goal — no unintended torque. The same logic runs in the console above.</p>
+    <div class="card fi">
+      <svg class="diagram" viewBox="0 0 960 320" font-family="Inter,sans-serif" role="img" aria-label="E-Gas three-level monitoring diagram">
+        <defs>
+          <marker id="ta" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#00D2BE"/></marker>
+          <marker id="tr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#FF4444"/></marker>
+          <style>
+            .bx{fill:#15211f;stroke:#00D2BE;stroke-width:1.4}
+            .bx2{fill:#121314;stroke:#7A8490;stroke-width:1.2}
+            .bxr{fill:#221314;stroke:#FF4444;stroke-width:1.4}
+            .lb{fill:#F4F4F4;font-size:13px;font-weight:600}
+            .sl{fill:#8a93a0;font-size:10px}
+            .ln{stroke:#00D2BE;stroke-width:1.8;fill:none;marker-end:url(#ta)}
+            .lr{stroke:#FF4444;stroke-width:1.8;fill:none;marker-end:url(#tr)}
+          </style>
+        </defs>
+        <!-- L1 band -->
+        <rect x="24" y="20" width="700" height="56" rx="6" class="bx2"/>
+        <text class="lb" x="44" y="44" text-anchor="start">Level 1 · Function</text>
+        <text class="sl" x="44" y="62" text-anchor="start">pedal → torque request → air / fuel actuation  (normal software)</text>
+        <!-- L2 band -->
+        <rect x="24" y="120" width="700" height="56" rx="6" class="bx"/>
+        <text class="lb" x="44" y="144" text-anchor="start">Level 2 · Function Monitoring</text>
+        <text class="sl" x="44" y="162" text-anchor="start">independent permissible torque → compare → LIMIT if exceeded</text>
+        <!-- L3 band -->
+        <rect x="24" y="220" width="700" height="56" rx="6" class="bxr"/>
+        <text class="lb" x="44" y="244" text-anchor="start">Level 3 · Controller Check</text>
+        <text class="sl" x="44" y="262" text-anchor="start">question / answer watchdog · program flow → SAFE STATE</text>
+        <!-- reactions to actuator -->
+        <rect x="770" y="120" width="160" height="156" rx="6" class="bx2"/>
+        <text class="lb" x="850" y="190" text-anchor="middle">Torque path</text>
+        <text class="sl" x="850" y="208" text-anchor="middle">tq_cmd → actuator</text>
+        <path class="ln" d="M724,148 L768,170"/>
+        <text class="sl" x="744" y="150" text-anchor="start">limit</text>
+        <path class="lr" d="M724,248 L768,210"/>
+        <text class="sl" x="744" y="246" text-anchor="start">cut</text>
+        <path class="ln" d="M724,48 L850,48 L850,118"/>
+      </svg>
+
+      <div class="legend-line">
+        <span><i class="lg-gen"></i> Deployed monitor (L2 + L3, code-generated)</span>
+        <span><i class="lg-plant"></i> Function path &amp; actuator</span>
+      </div>
+
+      <p class="sim-note" style="margin-top:18px">The <b>function</b> (L1) produces a torque request the normal way. The <b>monitor</b> (L2) recomputes the maximum torque the pedal could justify on an <b>independent</b> path and limits torque if the actual exceeds it. The <b>computer check</b> (L3) proves the controller is actually executing via a <b>question/answer watchdog</b>; if it fails, L3 forces the <b>safe state</b> regardless of L1/L2. Both reactions complete inside the <b>fault-tolerant time interval (FTTI)</b>.</p>
+
+      <div class="formula-grid">
+        <div class="formula"><code>permissible = pedal/100 · t_max + t_margin</code><p><b>L2 ceiling:</b> the most torque the driver could be asking for, recomputed independently of L1, plus a margin for normal transients.</p></div>
+        <div class="formula"><code>l2_bad = torque_actual &gt; permissible  (for l2_cnt samples)</code><p><b>L2 test:</b> a debounced comparison — sustained excess beyond the ceiling means unintended torque and triggers limitation.</p></div>
+        <div class="formula"><code>l3_trip = (missed Q/A answers ≥ wd_cnt)</code><p><b>L3 watchdog:</b> the controller must answer the watchdog's question each cycle; too many misses prove the computer is unhealthy.</p></div>
+        <div class="formula"><code>reaction ≤ FTTI  (L2 = 30 ms, L3 = 50 ms ≤ 50 ms)</code><p><b>Timing:</b> debounce counts are sized so detection + reaction always complete within the fault-tolerant time interval.</p></div>
+        <div class="formula wide"><code>OK →(l2_confirmed) L2_LIMIT →(l3_trip) L3_SAFE   ·   L3 has priority, reactions latch</code><p><b>Supervisor:</b> torque limitation handles over-torque; the safe state (zero torque) handles computer faults and overrides L2. Reactions latch until a key-cycle / reset.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- ARCHITECTURE -->
+<section id="arch">
+  <div class="wrap">
+    <div class="eyebrow fi">Design</div>
+    <h2 class="s-title fi">Architecture</h2>
+    <div class="bar fi"></div>
+    <div class="card fi">
+      <svg viewBox="0 0 960 404" style="width:100%;height:auto" font-family="Inter,sans-serif" role="img" aria-label="System architecture: inputs, code-generated monitor, and actuator">
+        <defs>
+          <marker id="aar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#00D2BE"/></marker>
+          <style>
+            .abx{fill:#15211f;stroke:#00D2BE;stroke-width:1.4}
+            .abx2{fill:#121314;stroke:#7A8490;stroke-width:1.2}
+            .alb{fill:#F4F4F4;font-size:13px;font-weight:600}
+            .asl{fill:#8a93a0;font-size:10px}
+            .alane{fill:#00D2BE;font-size:10.5px;font-weight:600;letter-spacing:.08em}
+            .alane2{fill:#7A8490;font-size:10.5px;font-weight:600;letter-spacing:.08em}
+            .aln{stroke:#00D2BE;stroke-width:1.7;fill:none;marker-end:url(#aar)}
+          </style>
+        </defs>
+        <rect x="16" y="14"  width="928" height="92"  rx="10" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.06)"/>
+        <rect x="16" y="166" width="928" height="100" rx="10" fill="rgba(0,210,190,.05)" stroke="#00D2BE" stroke-width="1.4" stroke-dasharray="6 4"/>
+        <rect x="16" y="316" width="928" height="74"  rx="10" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.06)"/>
+
+        <text class="alane2" x="30" y="30">INPUTS · DRIVER &amp; FUNCTION</text>
+        <rect class="abx2" x="30"  y="40" width="280" height="56" rx="6"/><text class="alb" x="170" y="64" text-anchor="middle">Pedal</text><text class="asl" x="170" y="82" text-anchor="middle">independent demand path</text>
+        <rect class="abx2" x="338" y="40" width="280" height="56" rx="6"/><text class="alb" x="478" y="64" text-anchor="middle">Torque (L1)</text><text class="asl" x="478" y="82" text-anchor="middle">function-path output</text>
+        <rect class="abx2" x="646" y="40" width="284" height="56" rx="6"/><text class="alb" x="788" y="64" text-anchor="middle">Watchdog answer</text><text class="asl" x="788" y="82" text-anchor="middle">computer health</text>
+
+        <path class="aln" d="M480,108 L480,164"/><text class="asl" x="472" y="140" text-anchor="end">pedal · torque · wd_ok</text>
+
+        <text class="alane" x="30" y="182">SAFETY MONITOR · CODE-GENERATED · EMBEDDED CODER · 100 Hz</text>
+        <rect class="abx" x="30"  y="192" width="280" height="58" rx="6"/><text class="alb" x="170" y="216" text-anchor="middle">L2 monitor</text><text class="asl" x="170" y="234" text-anchor="middle">permissible torque + debounce</text>
+        <rect class="abx" x="338" y="192" width="280" height="58" rx="6"/><text class="alb" x="478" y="216" text-anchor="middle">L3 watchdog</text><text class="asl" x="478" y="234" text-anchor="middle">Q/A timeout</text>
+        <rect class="abx" x="646" y="192" width="284" height="58" rx="6"/><text class="alb" x="788" y="216" text-anchor="middle">Supervisor</text><text class="asl" x="788" y="234" text-anchor="middle">Stateflow · latched · L3 priority</text>
+
+        <path class="aln" d="M480,266 L480,314"/><text class="asl" x="488" y="292" text-anchor="start">state · tq_cmd · safe_state</text>
+
+        <text class="alane2" x="30" y="334">ACTUATION</text>
+        <rect class="abx2" x="30"  y="344" width="440" height="42" rx="6"/><text class="alb" x="250" y="371" text-anchor="middle">Torque limiter / fuel cut</text>
+        <rect class="abx2" x="490" y="344" width="440" height="42" rx="6"/><text class="alb" x="710" y="371" text-anchor="middle">Throttle / injection</text>
+      </svg>
+      <p class="sim-note" style="margin-top:18px">Three layers. The <b>inputs</b> (grey, top) are the pedal (an independent acquisition for L2), the L1 function-path torque, and the watchdog answer. The <b>monitor</b> (teal, inside the dashed boundary) is the code-generated unit running at <b>100 Hz</b>: the L2 permissible-torque check, the L3 watchdog, and the latched Stateflow supervisor. The <b>actuation</b> (grey, bottom) applies the torque limit or fuel cut. The interface is small and explicit: <code style="font-family:var(--font-m)">pedal·torque_actual·wd_ok</code> in, <code style="font-family:var(--font-m)">state·tq_cmd·safe_state</code> out — the same contract as <code>autosar/SafetyMonitor.arxml</code>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- REQUIREMENTS -->
+<section id="reqs">
+  <div class="wrap">
+    <div class="eyebrow fi">Traceability</div>
+    <h2 class="s-title fi">Requirements</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:22px">The <b style="color:var(--silver)">Verification</b> column lists the <b>planned</b> MIL/SIL methods (run on a personal MATLAB). The monitor logic itself is re-proven headlessly today by <code>verify_safety_monitor.js</code> — independent of Simulink — and exercised live in the console above.</p>
+
+    <div class="stat-strip fi">
+      <div class="stat"><div class="s-val">50 ms</div><div class="s-lab">FTTI</div><div class="s-req">reaction deadline</div></div>
+      <div class="stat"><div class="s-val">30 ms</div><div class="s-lab">L2 reaction</div><div class="s-req">torque limit</div></div>
+      <div class="stat"><div class="s-val">50 ms</div><div class="s-lab">L3 reaction</div><div class="s-req">safe state</div></div>
+      <div class="stat"><div class="s-val">3</div><div class="s-lab">Levels</div><div class="s-req">independent</div></div>
+    </div>
+    <p class="stat-cap fi">Latest headless run · <code>verify_safety_monitor.js</code> — REQ-SAF-001…010 all pass.</p>
+
+    <div class="card fi" style="padding:6px 8px;margin-bottom:18px">
+      <p style="font-family:var(--font-d);font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim);padding:10px 12px 2px">Interface · 100 Hz (Ts = 10 ms)</p>
+      <table>
+        <thead><tr><th>Signal</th><th>Dir</th><th>Type · Range</th></tr></thead>
+        <tbody>
+          <tr><td><code>pedal</code></td><td>in</td><td>single, % · 0 … 100 (L2 independent path)</td></tr>
+          <tr><td><code>torque_actual</code></td><td>in</td><td>single, Nm · 0 … 400 (L1 output)</td></tr>
+          <tr><td><code>wd_ok</code></td><td>in</td><td>boolean · watchdog answered correctly</td></tr>
+          <tr><td><code>state</code></td><td>out</td><td>uint8 · 0 … 2 (OK / L2_LIMIT / L3_SAFE)</td></tr>
+          <tr><td><code>tq_cmd</code></td><td>out</td><td>single, Nm · ≤ permissible when limiting</td></tr>
+          <tr><td><code>safe_state</code></td><td>out</td><td>boolean · a safety reaction is active</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card fi" style="padding:6px 8px">
+      <table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Verification</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rid">REQ-SAF-001</span><br><span class="req-type">Functional</span></td><td>L2 computes a permissible torque independently from the pedal; monotonic and bounded.</td><td>Analysis · JS</td></tr>
+          <tr><td><span class="rid">REQ-SAF-002</span><br><span class="req-type">Safety</span></td><td>L2 detects a torque fault when actual exceeds the permissible torque.</td><td>MIL · <code>tc_l2</code></td></tr>
+          <tr><td><span class="rid">REQ-SAF-003</span><br><span class="req-type">Safety</span></td><td>On a confirmed L2 fault, limit torque (≤ <code>t_limp</code>) within the FTTI.</td><td>MIL · <code>tc_l2</code></td></tr>
+          <tr><td><span class="rid">REQ-SAF-004</span><br><span class="req-type">Robustness</span></td><td>A torque excess shorter than the L2 debounce shall not trigger a reaction.</td><td>MIL · <code>tc_l2_glitch</code></td></tr>
+          <tr><td><span class="rid">REQ-SAF-005</span><br><span class="req-type">Safety</span></td><td>L3 maintains a question/answer watchdog; a correct answer resets the fail counter.</td><td>Analysis</td></tr>
+          <tr><td><span class="rid">REQ-SAF-006</span><br><span class="req-type">Safety</span></td><td>On watchdog timeout, force the safe state (<code>tq_cmd = 0</code>) within the FTTI, independent of L1/L2.</td><td>MIL · <code>tc_l3</code></td></tr>
+          <tr><td><span class="rid">REQ-SAF-007</span><br><span class="req-type">Safety</span></td><td>Safety reactions are latched; recovery requires a reset / key cycle.</td><td>MIL · <code>tc_latch</code></td></tr>
+          <tr><td><span class="rid">REQ-SAF-008</span><br><span class="req-type">Safety</span></td><td>The L3 safe state has priority over the L2 torque limit (escalation).</td><td>MIL · <code>tc_priority</code></td></tr>
+          <tr><td><span class="rid">REQ-SAF-009</span><br><span class="req-type">Robustness</span></td><td>Nominal torque ripple within the L2 margin shall not trigger any reaction.</td><td>MIL · <code>tc_nominal</code></td></tr>
+          <tr><td><span class="rid">REQ-SAF-010</span><br><span class="req-type">Interface</span></td><td>Conform to the interface; outputs in range and <code>tq_cmd ≤ permissible</code> when limiting.</td><td>Analysis + all MIL tests</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- GENERATED C -->
+<section id="code">
+  <div class="wrap">
+    <div class="eyebrow fi">Production C</div>
+    <h2 class="s-title fi">Monitor Setup</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:22px">The deployed monitor and its setup, in MISRA-aligned C — the same logic running in the console above. Embedded Coder produces this from the Simulink/Stateflow model in the repo; shown here in equivalent hand form.</p>
+    <div class="card fi" style="padding:0;border:none;background:transparent">
+      <div class="tabs" role="tablist" aria-label="Monitor setup">
+        <button class="tab" role="tab" id="tab-params" aria-controls="tp-params" aria-selected="true">Parameters</button>
+        <button class="tab" role="tab" id="tab-mon" aria-controls="tp-mon" aria-selected="false" tabindex="-1">L2 + L3</button>
+        <button class="tab" role="tab" id="tab-sup" aria-controls="tp-sup" aria-selected="false" tabindex="-1">Supervisor</button>
+        <button class="tab" role="tab" id="tab-if" aria-controls="tp-if" aria-selected="false" tabindex="-1">Interface</button>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="tp-params" aria-labelledby="tab-params"><pre><span class="cm">/* safety_params.h — one parameter set (mirrors matlab/safety_params.m).
+ * Monitor executes at Ts = 0.01 s (100 Hz). */</span>
+<span class="kw">#define</span> TS         <span class="nu">0.01F</span>   <span class="cm">/* sample time [s] */</span>
+<span class="kw">#define</span> FTTI       <span class="nu">0.05F</span>   <span class="cm">/* fault-tolerant time interval [s] */</span>
+
+<span class="cm">/* Level 2 torque model */</span>
+<span class="kw">#define</span> T_MAX      <span class="nu">300.0F</span>  <span class="cm">/* max engine torque [Nm] */</span>
+<span class="kw">#define</span> T_MARGIN   <span class="nu">30.0F</span>   <span class="cm">/* allowance above requested [Nm] */</span>
+<span class="kw">#define</span> T_LIMP     <span class="nu">60.0F</span>   <span class="cm">/* limited torque in L2 reaction [Nm] */</span>
+
+<span class="cm">/* debounce / watchdog (sized so reaction <= FTTI) */</span>
+<span class="kw">#define</span> L2_CNT     <span class="nu">3U</span>      <span class="cm">/* samples to confirm L2 fault (=30 ms) */</span>
+<span class="kw">#define</span> WD_CNT     <span class="nu">5U</span>      <span class="cm">/* missed answers to trip L3  (=50 ms) */</span>
+
+<span class="cm">/* safety goal: no unintended torque — ASIL D (illustrative) */</span></pre></div>
+      <div class="tabpanel" role="tabpanel" id="tp-mon" aria-labelledby="tab-mon" hidden><pre><span class="cm">/* safety_monitor_step — Level 2 permissible-torque check + Level 3
+ * question/answer watchdog. Both feed the safe-state supervisor. */</span>
+<span class="kw">void</span> <span class="fn">safety_monitor_step</span>(<span class="kw">const</span> SafIn *<span class="kw">const</span> in, SafWork *<span class="kw">const</span> w)
+{
+    <span class="cm">/* L2 — independent permissible torque (REQ-SAF-001/002) */</span>
+    <span class="kw">const</span> <span class="kw">real32_T</span> requested   = in-&gt;pedal / <span class="nu">100.0F</span> * T_MAX;
+    w-&gt;permissible            = requested + T_MARGIN;
+    <span class="kw">boolean_T</span> l2_bad = in-&gt;torque_actual &gt; w-&gt;permissible;
+    <span class="kw">if</span> (l2_bad) { <span class="kw">if</span> (w-&gt;l2Cnt &lt; L2_CNT) w-&gt;l2Cnt++; } <span class="kw">else</span> { w-&gt;l2Cnt = <span class="nu">0U</span>; }
+    w-&gt;l2_confirmed = (w-&gt;l2Cnt &gt;= L2_CNT);                 <span class="cm">/* debounced (REQ-SAF-004) */</span>
+
+    <span class="cm">/* L3 — question/answer watchdog (REQ-SAF-005/006) */</span>
+    <span class="kw">if</span> (!in-&gt;wd_ok) { <span class="kw">if</span> (w-&gt;wdFail &lt; WD_CNT) w-&gt;wdFail++; } <span class="kw">else</span> { w-&gt;wdFail = <span class="nu">0U</span>; }
+    w-&gt;l3_trip = (w-&gt;wdFail &gt;= WD_CNT);
+}</pre></div>
+      <div class="tabpanel" role="tabpanel" id="tp-sup" aria-labelledby="tab-sup" hidden><pre><span class="cm">/* safety_supervisor_step — OK-&gt;L2_LIMIT-&gt;L3_SAFE (Stateflow).
+ * L3 has priority; reactions latch until reset (REQ-SAF-007/008). */</span>
+<span class="kw">void</span> <span class="fn">safety_supervisor_step</span>(<span class="kw">const</span> SafIn *<span class="kw">const</span> in, SafWork *<span class="kw">const</span> w,
+                            SafOut *<span class="kw">const</span> out)
+{
+    <span class="kw">if</span> (w-&gt;l3_trip) {                                   <span class="cm">/* highest priority */</span>
+        w-&gt;state = SAF_L3_SAFE;
+    } <span class="kw">else if</span> (w-&gt;state == SAF_OK &amp;&amp; w-&gt;l2_confirmed) {
+        w-&gt;state = SAF_L2_LIMIT;
+    }
+    <span class="cm">/* (no automatic exit — latched until a key-cycle reset) */</span>
+
+    <span class="kw">switch</span> (w-&gt;state) {
+    <span class="kw">case</span> SAF_OK:       out-&gt;tq_cmd = <span class="fn">fminf</span>(in-&gt;torque_actual, w-&gt;permissible); <span class="kw">break</span>;
+    <span class="kw">case</span> SAF_L2_LIMIT: out-&gt;tq_cmd = <span class="fn">fminf</span>(in-&gt;torque_actual, T_LIMP);         <span class="kw">break</span>;
+    <span class="kw">default</span>:          out-&gt;tq_cmd = <span class="nu">0.0F</span>;                                    <span class="kw">break</span>;
+    }
+    out-&gt;state      = w-&gt;state;
+    out-&gt;safe_state = (w-&gt;state != SAF_OK);
+}</pre></div>
+      <div class="tabpanel" role="tabpanel" id="tp-if" aria-labelledby="tab-if" hidden><pre><span class="cm">/* safety_monitor_types.h — I/O contract (REQ-SAF-010). */</span>
+<span class="kw">typedef enum</span> { SAF_OK = <span class="nu">0</span>, SAF_L2_LIMIT, SAF_L3_SAFE } SafState; <span class="cm">/* 0 … 2 */</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">real32_T</span>  pedal;          <span class="cm">/* accelerator [%] — independent L2 path */</span>
+    <span class="kw">real32_T</span>  torque_actual;  <span class="cm">/* L1 function-path torque [Nm] */</span>
+    <span class="kw">boolean_T</span> wd_ok;          <span class="cm">/* watchdog answered correctly */</span>
+} SafIn;
+
+<span class="kw">typedef struct</span> {
+    SafState  state;          <span class="cm">/* OK / L2_LIMIT / L3_SAFE */</span>
+    <span class="kw">real32_T</span>  tq_cmd;         <span class="cm">/* allowed torque [Nm] (&lt;= permissible) */</span>
+    <span class="kw">boolean_T</span> safe_state;     <span class="cm">/* a safety reaction is active */</span>
+} SafOut;</pre></div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Monitor-setup tabs (accessible: click + arrow keys)
+(function(){
+  const tabs=[...document.querySelectorAll('#code .tab')];
+  if(!tabs.length) return;
+  const panels=tabs.map(t=>document.getElementById(t.getAttribute('aria-controls')));
+  function sel(i){tabs.forEach((t,k)=>{const on=k===i;t.setAttribute('aria-selected',on?'true':'false');t.tabIndex=on?0:-1;panels[k].hidden=!on;});}
+  tabs.forEach((t,i)=>{
+    t.addEventListener('click',()=>{sel(i);t.focus();});
+    t.addEventListener('keydown',e=>{
+      let n;
+      if(e.key==='ArrowRight'||e.key==='ArrowDown') n=(i+1)%tabs.length;
+      else if(e.key==='ArrowLeft'||e.key==='ArrowUp') n=(i-1+tabs.length)%tabs.length;
+      else if(e.key==='Home') n=0; else if(e.key==='End') n=tabs.length-1; else return;
+      e.preventDefault();sel(n);tabs[n].focus();
+    });
+  });
+})();
+</script>
+
+<div class="rule"></div>
+
+<!-- ARTIFACTS -->
+<section id="artifacts">
+  <div class="wrap">
+    <div class="eyebrow fi">MBD Artifacts</div>
+    <h2 class="s-title fi">Build &amp; Verification</h2>
+    <div class="bar fi"></div>
+    <div class="card fi">
+      <div class="art">
+        <span class="art-status st-done">Done</span>
+        <div><h4>Monitor defined as code</h4><p>The Simulink model and Stateflow safe-state machine are constructed via the Simulink API in <a href="https://github.com/SaaimSaad" target="_blank" rel="noopener"><code>build_model.m</code></a> — reviewable and diffable in git. Requirements, design, and test plan are in the repo and track the same L2/L3 logic, FTTI budget, and supervisor shown above.</p></div>
+      </div>
+      <div class="art">
+        <span class="art-status st-done">Done</span>
+        <div><h4>Logic verified (browser + reference tests)</h4><p>Exercised live above and checked against requirement thresholds in <code>test/test_safety_monitor.m</code> and <code>verify_safety_monitor.js</code> — REQ-SAF-001…010 all pass, including reaction-time vs FTTI, independent of Simulink.</p></div>
+      </div>
+      <div class="art">
+        <span class="art-status st-done">Done</span>
+        <div><h4>AUTOSAR Classic SWC description</h4><p>A hand-authored, schema-valid <code>autosar/SafetyMonitor.arxml</code> — ports, sender/receiver interfaces, a 10 ms periodic runnable, and the I/O contract for integrating the monitor as an AUTOSAR Classic software component.</p></div>
+      </div>
+      <div class="art">
+        <span class="art-status st-pending">Pending</span>
+        <div><h4>Simulink/Stateflow diagram + MCDC coverage</h4><p>The rendered <code>.slx</code> diagram and the decision/condition/MCDC coverage report — produced by running <code>build_model.m</code> / <code>collect_coverage.m</code> on a personal MATLAB. Screenshots will be embedded here.</p></div>
+      </div>
+      <div style="margin-top:24px;display:flex;gap:11px;flex-wrap:wrap">
+        <a href="https://github.com/SaaimSaad" class="btn-p" target="_blank" rel="noopener">View Repository →</a>
+        <a href="newcv.html#projects" class="btn-s">Back to Projects</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="carbon">
+  <div class="wrap ft-in">
+    <span class="ft-logo">MSS · 2026</span>
+    <span class="ft-copy">Muhammed Saaim Saad · Torque Safety Monitor</span>
+    <a href="newcv.html" class="n-back">Portfolio ↗</a>
+  </div>
+</footer>
+
+<script>
+// Nav scroll + fade-in
+const nav=document.getElementById('nav');
+addEventListener('scroll',()=>nav.classList.toggle('sc',scrollY>20),{passive:true});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('v');io.unobserve(e.target)}}),{threshold:.08});
+document.querySelectorAll('.fi').forEach(el=>io.observe(el));
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// Safety Console — ISO 26262 E-Gas three-level torque monitor simulation.
+// Mirrors matlab/Monitor + Stateflow supervisor and verify_safety_monitor.js:
+// L2 independent permissible torque + debounce, L3 question/answer watchdog,
+// and the latched OK→L2_LIMIT→L3_SAFE machine (L3 priority).
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const el=id=>document.getElementById(id);
+  const P={ Ts:0.01, t_max:300, t_margin:30, t_limp:60, l2_cnt:3, wd_cnt:5, ftti:0.05 };
+  const S={OK:0,L2_LIMIT:1,L3_SAFE:2};
+  const NAME=['OK','L2_LIMIT','L3_SAFE'];
+  const requested=ped=>ped/100*P.t_max;
+  const permissible=ped=>requested(ped)+P.t_margin;
+
+  let pedal=35, excessActive=false, spikePending=false, wdActive=false;
+  let st, buf=[]; const WIN=6;
+  let faultOnset=null, reactionMs=null, liveActual=0, freezeFrame=null;
+
+  function reset(){
+    excessActive=false; wdActive=false; spikePending=false;
+    st={state:S.OK,l2Cnt:0,wdFail:0,tq_cmd:requested(35),permissible:permissible(35),t:0};
+    buf=[]; faultOnset=null; reactionMs=null; liveActual=0; freezeFrame=null;
+  }
+
+  function step(){
+    // L1 actual torque from pedal, plus injected faults
+    let tq=requested(pedal);
+    if(excessActive){ tq=requested(pedal)+90; }
+    if(spikePending){ tq=requested(pedal)+90; spikePending=false; }
+    const wd_ok=!wdActive;
+
+    const perm=permissible(pedal); st.permissible=perm;
+    const l2_bad = tq>perm;
+    if(l2_bad) st.l2Cnt=Math.min(st.l2Cnt+1,P.l2_cnt); else st.l2Cnt=0;
+    const l2_confirmed=st.l2Cnt>=P.l2_cnt;
+    if(!wd_ok) st.wdFail=Math.min(st.wdFail+1,P.wd_cnt); else st.wdFail=0;
+    const l3_trip=st.wdFail>=P.wd_cnt;
+
+    const prev=st.state;
+    if(l3_trip) st.state=S.L3_SAFE;
+    else if(st.state===S.OK && l2_confirmed) st.state=S.L2_LIMIT;
+    else if(st.state===S.L2_LIMIT && l3_trip) st.state=S.L3_SAFE;
+
+    // reaction-time: from first fault sample to state change (works from any state)
+    if((l2_bad||!wd_ok) && faultOnset===null) faultOnset=st.t;
+    if(prev!==st.state && faultOnset!==null && reactionMs===null) reactionMs=(st.t-faultOnset)*1000;
+
+    if(st.state===S.OK) st.tq_cmd=Math.min(tq,perm);
+    else if(st.state===S.L2_LIMIT) st.tq_cmd=Math.min(tq,P.t_limp);
+    else st.tq_cmd=0;
+
+    // capture freeze frame on first reaction (or escalation)
+    if(prev!==st.state && st.state!==S.OK){
+      freezeFrame={level:NAME[st.state],pedal:Math.round(pedal),tq:Math.round(tq),perm:Math.round(perm),excess:Math.round(tq-perm),rt:reactionMs};
+    }
+    liveActual=tq;
+
+    st.t+=P.Ts;
+    buf.push({t:st.t,tq,perm,cmd:st.tq_cmd,state:st.state});
+    while(buf.length&&st.t-buf[0].t>WIN) buf.shift();
+  }
+
+  // ───── plot ─────
+  const cv=el('plot'),g=cv.getContext('2d');
+  function fit(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=250*d;g.setTransform(d,0,0,d,0,0);}
+  addEventListener('resize',fit);fit();
+  function draw(){
+    const W=cv.width/(devicePixelRatio||1),H=250;g.clearRect(0,0,W,H);
+    const x0=46,x1=W-12,y0=14,y1=H-22,TM=P.t_max;
+    const X=t=>x0+((t-(st.t-WIN))/WIN)*(x1-x0), Y=v=>y1-(v/TM)*(y1-y0);
+    g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;g.font='10px JetBrains Mono,monospace';g.fillStyle='#7A8490';
+    for(let v=0;v<=TM;v+=100){const y=Y(v);g.beginPath();g.moveTo(x0,y);g.lineTo(x1,y);g.stroke();g.fillText(v,x0-6-g.measureText(v).width,y+3);}
+    g.fillText('Nm',8,y0-5);
+    if(buf.length>1){
+      // permissible ceiling (dashed)
+      g.strokeStyle='rgba(122,132,144,.85)';g.setLineDash([5,4]);g.lineWidth=1.2;g.beginPath();
+      buf.forEach((d,i)=>{const x=X(d.t),y=Y(d.perm);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();g.setLineDash([]);
+      // commanded torque (orange)
+      g.strokeStyle='rgba(255,106,42,.9)';g.lineWidth=1.6;g.beginPath();
+      buf.forEach((d,i)=>{const x=X(d.t),y=Y(d.cmd);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+      // actual torque (teal, red when in a reaction)
+      g.lineWidth=2;let pf=(buf[0].state!==S.OK);g.beginPath();g.strokeStyle=pf?'#FF4444':'#00D2BE';
+      buf.forEach((d,i)=>{const x=X(d.t),y=Y(d.tq),f=(d.state!==S.OK);
+        if(f!==pf){g.stroke();g.beginPath();g.strokeStyle=f?'#FF4444':'#00D2BE';g.moveTo(x,y);pf=f;}else{i?g.lineTo(x,y):g.moveTo(x,y);}});g.stroke();
+    }
+  }
+
+  // ───── readouts ─────
+  const warn=el('warn'),warnTxt=el('warn-txt');
+  function readouts(){
+    const sp=el('ro-state');sp.textContent=NAME[st.state];sp.className='state-pill st-'+NAME[st.state];
+    el('ro-cmd').textContent=Math.round(st.tq_cmd)+' Nm';
+    el('ro-perm').textContent=Math.round(st.permissible)+' Nm';
+    el('ro-rt').textContent=(reactionMs!==null)?Math.round(reactionMs)+' ms':'—';
+    const safe=(st.state!==S.OK);
+    warn.classList.toggle('on',safe);warnTxt.textContent=safe?'ACTIVE':'INACTIVE';warnTxt.style.color=safe?'var(--red)':'var(--silver)';
+    // latch note: latched but no active fault injection
+    const latched=safe&&!excessActive&&!wdActive;
+    el('latch-note').style.display=latched?'':'none';
+    // level ladder
+    el('lvl1').classList.toggle('on',true);
+    el('lvl2').classList.toggle('on',st.state===S.L2_LIMIT);
+    el('lvl3').classList.toggle('on',st.state===S.L3_SAFE);
+    // fault injection indicators
+    el('dot-excess').className='fault-dot'+(excessActive?' on-amb':'');
+    el('lbl-excess').textContent=excessActive?'Over-torque injected':'No over-torque';
+    el('b-excess').classList.toggle('injecting',excessActive);
+    el('dot-wd').className='fault-dot'+(wdActive?' on-red':'');
+    el('lbl-wd').textContent=wdActive?'Watchdog failing':'Watchdog healthy';
+    el('b-wd').classList.toggle('injecting',wdActive);
+    // L2 debounce arc
+    const l2Latched=(st.state!==S.OK);
+    const l2pct=l2Latched?1:st.l2Cnt/P.l2_cnt;
+    const l2Off=(157*(1-l2pct)).toFixed(1);
+    const arcCol=l2Latched?'#FF4444':`rgb(${Math.round(200+l2pct*55)},${Math.round(168*(1-l2pct))},0)`;
+    el('l2arc-fill').setAttribute('stroke-dashoffset',l2Off);
+    el('l2arc-fill').setAttribute('stroke',arcCol);
+    el('l2arc-num').textContent=l2Latched?P.l2_cnt:st.l2Cnt;
+    el('l2arc-num').setAttribute('fill',arcCol);
+    // L3 watchdog arc
+    const l3Latched=(st.state===S.L3_SAFE);
+    const l3pct=l3Latched?1:st.wdFail/P.wd_cnt;
+    const l3Off=(157*(1-l3pct)).toFixed(1);
+    const l3Col=l3pct>0?'#FF4444':'rgba(255,68,68,.15)';
+    el('l3arc-fill').setAttribute('stroke-dashoffset',l3Off);
+    el('l3arc-fill').setAttribute('stroke',l3Col);
+    el('l3arc-num').textContent=l3Latched?P.wd_cnt:st.wdFail;
+    el('l3arc-num').setAttribute('fill',l3pct>0?'#FF4444':'var(--silver-dim)');
+    // torque margin
+    const margin=Math.round(st.permissible-liveActual);
+    const pos=margin>=0;
+    el('ro-margin').textContent=(pos?'+':'')+margin+' Nm';
+    el('ro-margin').style.color=pos?'var(--petronas)':'var(--red)';
+    el('margin-tag').textContent=pos?'HEADROOM':'EXCESS';
+    el('margin-tag').className='margin-tag '+(pos?'ok':'bad');
+    // freeze frame
+    if(freezeFrame){
+      el('ff-tag').textContent='· captured';el('ff-tag').style.color='var(--red)';
+      el('ff-body').style.display='none';el('ff-grid').style.display='grid';
+      el('ff-level').textContent=freezeFrame.level;
+      el('ff-pedal').textContent=freezeFrame.pedal+' %';
+      el('ff-rt').textContent=freezeFrame.rt!==null?Math.round(freezeFrame.rt)+' ms':'—';
+      el('ff-tq').textContent=freezeFrame.tq+' Nm';
+      el('ff-perm2').textContent=freezeFrame.perm+' Nm';
+      el('ff-excess').textContent=(freezeFrame.excess>=0?'+':'')+freezeFrame.excess+' Nm';
+    } else {
+      el('ff-tag').textContent='— not captured';el('ff-tag').style.color='var(--silver-dim)';
+      el('ff-body').style.display='';el('ff-grid').style.display='none';
+    }
+  }
+
+  // ───── loop ─────
+  let last=performance.now(),acc=0;
+  function frame(now){let dt=(now-last)/1000;last=now;if(dt>0.1)dt=0.1;acc+=dt;
+    while(acc>=P.Ts){step();acc-=P.Ts;} draw();readouts();requestAnimationFrame(frame);}
+
+  // ───── controls ─────
+  const sped=el('s-ped');
+  sped.addEventListener('input',()=>{pedal=parseFloat(sped.value);el('v-ped').textContent=Math.round(pedal)+'%';});
+  el('b-excess').addEventListener('click',()=>{excessActive=true;faultOnset=null;reactionMs=null;});
+  el('b-rem-excess').addEventListener('click',()=>{excessActive=false;});
+  el('b-wd').addEventListener('click',()=>{wdActive=true;faultOnset=null;reactionMs=null;});
+  el('b-rem-wd').addEventListener('click',()=>{wdActive=false;});
+  el('b-spike').addEventListener('click',()=>{spikePending=true;});
+  el('b-reset').addEventListener('click',()=>{reset();});
+
+  reset(); requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
